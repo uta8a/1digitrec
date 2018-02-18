@@ -1,0 +1,178 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<canvas id="inp" width="280" height="280"></canvas>
+<input class="btn" id="pA" type='button' value="ponkotsu AI" onClick='DLoad()'>
+<canvas id="drawarea" width="28" height="28"></canvas>
+<div class="grid">
+  <input class="btn" id="tB" type="button" value="true" onClick="ca()">
+  <input class="btn" id="fB" type="button" value="false" onClick="cf()">
+</div>
+
+<input class="btn" id="re" type="button" value="count reset" onClick="cr()">
+<h1 id='ans'></h1>
+<h2 id='per'></h2>
+
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    touch-action: none;
+  }
+  .grid {
+    display: flex;
+  }
+  #pA {
+    width: 200px;
+  }
+  #tB {
+    width: 94px;
+    background-color: #E91E63;
+  }
+  #fB {
+    width: 94px;
+    background-color: #2196F3;
+  }
+  #re {
+    width: 200px;
+    background-color: #FFC107;
+  }
+  #inp {
+    border-style: solid;
+    border-color: #7cfc00;
+    border-radius: 30px;
+  }
+  .btn {
+    outline: none;
+    display: inline-block;
+    background-color: #26a69b;
+    color: #FFF;
+    font-size: 1.5em;
+    line-height: 1;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    padding: 0.2em 0 0.2em 0;
+    border-radius: 3px;
+    border: solid;
+    cursor: pointer;
+    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+    transition: .3s ease-out;
+    margin: 6px;
+    text-align: center;
+  }
+
+  .btn:hover {
+    box-shadow: 0 3px 3px 0 rgba(0, 0, 0, 0.14), 0 1px 7px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn:active {
+    background-color: black !important;
+    /* #re,fB,tBでbackground-colorが上書きされるのを防ぐ */
+  }
+
+  #drawarea {
+    display: none;
+  }
+</style>
+
+<script>
+  let a = document.querySelector("#inp");
+  let c = a.getContext("2d");
+  var isdraw = false;
+
+  let sleep = t => {
+    const d1 = new Date();
+    while (true) {
+      const d2 = new Date();
+      if (d2 - d1 > t) {
+        return;
+      }
+    }
+  };
+  let countAns = 0;
+  let countSum = 0;
+
+  let ca = () => {
+    countAns += 1;
+    countSum += 1;
+    document.querySelector('#per').innerText = '確率は' + countAns / countSum + '\n' + '試行回数は' + countSum;
+  };
+
+  let cf = () => {
+    countSum += 1;
+    document.querySelector('#per').innerText = '確率は' + countAns / countSum + '\n' + '試行回数は' + countSum;
+  };
+
+  let cr = () => {
+    countSum = 0;
+    countAns = 0;
+    document.querySelector('#per').innerText = '';
+  };
+  let DLoad = () => {
+    document.querySelector('#ans').innerText = 'loading....';
+    let data = a.toDataURL();
+    let img = new Image();
+    img.src = data;
+    img.onload = () => {
+      let d = document.querySelector("#drawarea");
+      let e = drawarea.getContext("2d");
+      e.clearRect(0, 0, d.width, d.height);
+      e.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width * 0.1, img.height * 0.1);
+
+      let b64img = d.toDataURL().split(',')[1];
+      fetch('/post', {
+          headers: {'Content-Type': 'application/JSON'},
+          method: 'POST',
+          body: JSON.stringify({'test': b64img})
+      }).then(r => {return r.text();}).then(e => {
+        document.querySelector('#ans').innerText = e;
+        setTimeout(e => {
+          c.clearRect(0, 0, a.width, a.height);
+        },1000);
+      })
+    };
+  };
+
+  a.addEventListener('touchmove', e => {
+    mouseX = e.touches[0].clientX - a.offsetLeft;
+    mouseY = e.touches[0].clientY - a.offsetTop;
+    if (isdraw) {
+      c.beginPath();
+      c.moveTo(pX, pY);
+      c.lineTo(mouseX, mouseY);
+      c.lineCap = "round";
+      c.lineWidth = 15;
+      c.stroke();
+      pX = mouseX;
+      pY = mouseY;
+    }
+  });
+  a.addEventListener('touchend', e => isdraw = false);
+  a.addEventListener('touchstart', e => {
+    isdraw = true;
+    mouseX = e.touches[0].clientX - a.offsetLeft;
+    mouseY = e.touches[0].clientY - a.offsetTop;
+    pX = mouseX;
+    pY = mouseY;
+  });
+
+  a.addEventListener('mousemove', e => {
+    mouseX = e.clientX - a.offsetLeft;
+    mouseY = e.clientY - a.offsetTop;
+    if (isdraw) {
+      c.beginPath();
+      c.moveTo(pX, pY);
+      c.lineTo(mouseX, mouseY);
+      c.lineCap = "round";
+      c.lineWidth = 15;
+      c.stroke();
+      pX = mouseX;
+      pY = mouseY;
+    }
+  });
+  a.addEventListener('mouseup', e => isdraw = false);
+  a.addEventListener('mousedown', e => {
+    isdraw = true;
+    pX = mouseX;
+    pY = mouseY;
+  });
+</script>
